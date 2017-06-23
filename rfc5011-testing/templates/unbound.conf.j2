@@ -1,0 +1,30 @@
+# {{ ansible_managed }}
+# unbound.conf
+
+server:
+	verbosity: 1
+
+	statistics-interval: 10
+	extended-statistics: yes
+
+	logfile: ""
+	username: ""
+	chroot: ""
+
+    interface: {{ unbound_listen_address | ipv4 }}
+
+	root-hints: "/etc/unbound/keyroll-systems-root.zone"
+	auto-trust-anchor-file: "/var/lib/unbound/root.key"
+	
+	# instruct the auto-trust-anchor-file probing to add anchors after ttl.
+	# add-holddown: 2592000 # 30 days
+
+	# instruct the auto-trust-anchor-file probing to del anchors after ttl.
+	# del-holddown: 2592000 # 30 days
+
+	# auto-trust-anchor-file probing removes missing anchors after ttl.
+	# If the value 0 is given, missing anchors are not removed.
+	# keep-missing: 31622400 # 366 days
+
+remote-control:
+	control-enable: yes

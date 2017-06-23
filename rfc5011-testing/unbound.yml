@@ -1,0 +1,71 @@
+- name: setup Unbound for RFC5011 testing
+  hosts:
+    rhel-6
+    rhel-7
+  remote_user: root
+  vars_files:
+      - "vars/common.yml"
+#      - [ "vars/{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml", "vars/os_defaults.yml" ]
+
+  tasks:
+    - name: install packages
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - unbound
+        - libselinux-python
+        - bind-utils
+
+# TODO: this is not enough, as unbound-anchor is run as ExecStartPost!!!
+    - name: make sure unbound-anchor is not run (timer unit)
+      service:
+        name: unbound-anchor.timer
+        enabled: no
+        state: stopped
+      when: ansible_distribution_major_version == "7"
+
+    - name: make sure unbound-anchor is not run (cron)
+      file:
+        name: /etc/cron.d/unbound-anchor
+        state: absent
+      notify:
+        - restart cron
+      when: ansible_distribution_major_version == "6"
+
+    - name: configure local interface for Unbound
+      command: "ip address add {{ unbound_listen_address }}/8 dev lo valid_lft forever"
+      when: ansible_lo.ipv4_secondaries | default({}) | selectattr("address", "equalto", unbound_listen_address | string) | list| length == 0
+
+    - name: selinux is set to permissive
+      selinux:
+        policy: targeted
+        state: permissive
+
+    - name: configure Unbound
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - { src: "templates/unbound.conf.j2", dest: "/etc/unbound/unbound.conf" }
+        - { src: "templates/root.hints", dest: "/etc/unbound/keyroll-systems-root.zone" }
+        - { src: "templates/root.key.unbound.j2", dest: "/var/lib/unbound/root.key" }
+      notify:
+        - restart Unbound
+
+    - name: make sure Unbound is running and enabled
+      service:
+        name: unbound
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: restart Unbound
+      service:
+        name: unbound
+        state: restarted
+
+    - name: restart cron
+      service:
+        name: crond
+        state: restarted

@@ -1,0 +1,64 @@
+- name: setup BIND for RFC5011 testing
+  hosts:
+    rhel-5
+    rhel-6
+    rhel-7
+  remote_user: root
+  vars_files:
+      - "vars/common.yml"
+      - [ "vars/{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml", "vars/os_defaults.yml" ]
+
+  tasks:
+    - name: make sure there is no bind on rhel-5
+      yum:
+        name: bind-libs
+        state: absent
+      when: ansible_distribution_major_version == "5"
+
+    - name: install packages
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - "{{ bind_pkg }}"
+        - "{{ bind_pkg }}-utils"
+        - libselinux-python
+
+    - name: configure local interface for BIND (except el5)
+      command: "ip address add {{ bind_listen_address }}/8 dev lo valid_lft forever"
+      when: ( ansible_distribution_major_version != "5" and
+            ( ansible_lo.ipv4_secondaries | default({}) | selectattr("address", "equalto", bind_listen_address | string) | list | length == 0 ) )
+
+    - name: configure local interface for BIND (el5)
+      command: "ip address add {{ bind_listen_address }}/8 dev lo"
+      when: ( ansible_distribution_major_version == "5" and
+            ( ansible_lo.ipv4_secondaries | default({}) | selectattr("address", "equalto", bind_listen_address | string) | list| length == 0 ) )
+
+    - name: selinux is set to permissive
+      selinux:
+        policy: targeted
+        state: permissive
+
+    - name: configure BIND
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - { src: "templates/named.conf.j2", dest: "/etc/named.conf" }
+        - { src: "templates/root.hints", dest: "/var/named/named.ca" }
+        - { src: "templates/root.key.j2", dest: "/etc/named/root.key" }
+      notify:
+        - restart BIND
+
+    - name: make sure BIND is running and enabled
+      service:
+        name: named
+        enabled: yes
+        state: started
+  
+  handlers:
+    - name: restart BIND
+      service:
+          name: named
+          state: restarted
+

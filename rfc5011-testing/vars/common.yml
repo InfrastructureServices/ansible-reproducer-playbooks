@@ -1,0 +1,5 @@
+bind_listen_address: "127.0.0.10"
+unbound_listen_address: "127.0.0.20"
+# MUST BE CHANGED EVERY TIME
+# can be taken from http://keyroll.systems/current.key
+initial_trust_anchor: "AwEAAefqbLn5mg58TR1ynP3MQ96oqwcM8nVN3HlqG/SXLWqYdJoQDxax FLUJmucpXPtbByFiQozulsSA6jIv/mjJg0S+C65e4uNLk0M6FPCDGjMR GcBruGti6Xd3KVadTr65dKU0Ovrwwgu5ZbYumTmt8Hj4bIR7qdKUwutN uRSgrWL+I6pFEO54uKivg1Tt00T7oWO8DNrJdESqZ3OWa63WnDHXatkK TfmAz+sDishpwzCdtwE+i6ZahPDoQdYElAvLeYsh+cw12HKInje2+Bj5 hPyPEZbl4z2vwD/KnOizB6P3T00fssmqN7vcQ5EUYb18sT3pOdgu2DiL DFj5L6xqxXE="
